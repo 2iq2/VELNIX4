@@ -84,5 +84,12 @@ class ReminderReceiver : BroadcastReceiver() {
             (intent.getStringExtra(EXTRA_REMINDER_KEY) ?: programTitle).hashCode(),
             notification
         )
+        val reminderKey = intent.getStringExtra(EXTRA_REMINDER_KEY)
+        if (!reminderKey.isNullOrBlank()) {
+            val prefs = context.getSharedPreferences("velnix_preferences", Context.MODE_PRIVATE)
+            val remaining = prefs.getStringSet("program_reminders", emptySet())?.toMutableSet() ?: mutableSetOf()
+            remaining.remove(reminderKey)
+            prefs.edit().putStringSet("program_reminders", remaining).apply()
+        }
     }
 }
