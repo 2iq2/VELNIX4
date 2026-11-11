@@ -436,6 +436,7 @@ private fun EpgGuideDialog(
     val dateLabel = remember(dayStart) {
         SimpleDateFormat("EEEE, dd MMM", Locale.getDefault()).format(Date(dayStart))
     }
+    val guideChannels = channels.filter { !it.tvgId.isNullOrBlank() }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -484,13 +485,17 @@ private fun EpgGuideDialog(
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("استورد ملف XMLTV حتى يظهر جدول البرامج.", color = Muted)
                     }
+                } else if (guideChannels.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("ماكو قنوات مرتبطة بمعرّف tvg-id. تأكد أن ملف M3U يحتوي معرّفات القنوات.", color = Muted)
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         contentPadding = PaddingValues(bottom = 20.dp)
                     ) {
-                        items(channels.filter { !it.tvgId.isNullOrBlank() }, key = { it.number + it.name }) { channel ->
+                        items(guideChannels, key = { it.number + it.name }) { channel ->
                             val channelPrograms = programs
                                 .filter {
                                     it.channelId.equals(channel.tvgId, ignoreCase = true) &&
