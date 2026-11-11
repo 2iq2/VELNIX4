@@ -749,6 +749,7 @@ private fun StreamPlayerDialog(channel: Channel, onDismiss: () -> Unit) {
     var streamUrl by remember(channel.number) { mutableStateOf(channel.streamUrl.orEmpty()) }
     var activeUrl by remember(channel.number) { mutableStateOf(channel.streamUrl) }
     var error by remember(channel.number) { mutableStateOf<String?>(null) }
+    var retryCount by remember(channel.number) { mutableIntStateOf(0) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -768,7 +769,7 @@ private fun StreamPlayerDialog(channel: Channel, onDismiss: () -> Unit) {
                     TextButton(onClick = onDismiss) { Text("إغلاق", color = Muted) }
                 }
                 if (activeUrl != null) {
-                    Media3Player(url = activeUrl!!, onError = { error = it })
+                    Media3Player(url = activeUrl!!, retryToken = retryCount, onError = { error = it })
                 } else {
                     Box(
                         Modifier.fillMaxWidth().aspectRatio(16f / 9f)
@@ -804,7 +805,14 @@ private fun StreamPlayerDialog(channel: Channel, onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)
                 ) { Text(if (activeUrl == null) "تشغيل القناة" else "تحديث رابط التشغيل", fontWeight = FontWeight.Bold) }
-                error?.let { Text(it, color = Color(0xFFFF6B6B), fontSize = 12.sp) }
+                error?.let { playbackError ->
+                    Text(playbackError, color = Color(0xFFFF6B6B), fontSize = 12.sp)
+                    if (activeUrl != null) {
+                        OutlinedButton(onClick = { error = null; retryCount++ }, modifier = Modifier.fillMaxWidth()) {
+                            Text("إعادة محاولة التشغيل", color = Acid)
+                        }
+                    }
+                }
                 Text(
                     "استخدم روابط البث التي تملك تصريحاً باستخدامها. دعم HLS وDASH يعتمد على صيغة المصدر وتوافقه.",
                     color = Muted, fontSize = 10.sp
@@ -815,12 +823,16 @@ private fun StreamPlayerDialog(channel: Channel, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun Media3Player(url: String, onError: (String) -> Unit) {
+private fun Media3Player(url: String, retryToken: Int, onError: (String) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var wasPlayingBeforePause by remember(url) { mutableStateOf(true) }
-    val player = remember(url) {
-        ExoPlayer.Builder(context).build().apply {
+    val player = remember(url, retryToken) {
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setBufferDurationsMs(30_000, 120_000, 2_500, 8_000)
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
+        ExoPlayer.Builder(context).setLoadControl(loadControl).build().apply {
             val lower = url.lowercase()
             val mime = when {
                 lower.substringBefore('?').endsWith(".m3u8") -> MimeTypes.APPLICATION_M3U8
@@ -865,7 +877,7 @@ private fun Media3Player(url: String, onError: (String) -> Unit) {
             PlayerView(viewContext).apply {
                 this.player = player
                 useController = true
-                setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
             }
         },
         update = { it.player = player }
