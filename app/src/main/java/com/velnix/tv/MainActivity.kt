@@ -116,6 +116,7 @@ private fun VelnixApp() {
     var showAccount by remember { mutableStateOf(false) }
     var profileName by remember { mutableStateOf(prefs.getString(KEY_PROFILE_NAME, "") ?: "") }
     var profileEmail by remember { mutableStateOf(prefs.getString(KEY_PROFILE_EMAIL, "") ?: "") }
+    var authEmail by remember { mutableStateOf<String?>(null) }
     var importMessage by remember { mutableStateOf<String?>(null) }
     var isImporting by remember { mutableStateOf(false) }
     var epgPrograms by remember { mutableStateOf(emptyList<com.velnix.tv.domain.model.EpgProgram>()) }
@@ -194,6 +195,10 @@ private fun VelnixApp() {
 
 
     LaunchedEffect(Unit) {
+        authEmail = runCatching { com.velnix.tv.auth.VelnixAuth.currentEmail(context) }.getOrNull()
+    }
+
+    LaunchedEffect(Unit) {
         val savedXmltv = withContext(Dispatchers.IO) { prefs.getString(KEY_XMLTV, null) }
         if (!savedXmltv.isNullOrBlank()) {
             epgPrograms = withContext(Dispatchers.Default) {
@@ -262,7 +267,7 @@ private fun VelnixApp() {
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Acid)
                         ) {
-                            Text(if (profileName.isBlank()) "حسابي" else profileName, maxLines = 1, fontSize = 10.sp)
+                            Text(authEmail ?: if (profileName.isBlank()) "حسابي" else profileName, maxLines = 1, fontSize = 10.sp)
                         }
                     }
                 }
@@ -354,9 +359,11 @@ private fun VelnixApp() {
             StreamPlayerDialog(channel = channel, onDismiss = { selectedChannel = null })
         }
         if (showAccount) {
-            AccountDialog(
+            SupabaseAuthDialog(
                 initialName = profileName,
                 initialEmail = profileEmail,
+                signedInEmail = authEmail,
+                onAuthChanged = { authEmail = it },
                 onSave = { name, email ->
                     profileName = name
                     profileEmail = email
