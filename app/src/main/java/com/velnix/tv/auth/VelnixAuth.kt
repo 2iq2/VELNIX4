@@ -78,6 +78,15 @@ object VelnixAuth {
             "إذا كان البريد مسجلاً، ستصلك رسالة استعادة كلمة المرور."
         }
 
+    suspend fun updateDisplayName(context: Context, displayName: String): String =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val token = prefs.getString(ACCESS, null) ?: throw IllegalStateException("سجّل الدخول أولاً.")
+            val body = JSONObject().put("data", JSONObject().put("display_name", displayName.trim()))
+            request("/auth/v1/user", "PUT", body, token)
+            "تم تحديث الاسم في حسابك."
+        }
+
     suspend fun signOut(context: Context) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val token = prefs.getString(ACCESS, null)
