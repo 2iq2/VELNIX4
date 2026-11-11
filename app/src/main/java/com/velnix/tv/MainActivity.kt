@@ -46,6 +46,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 private val Ink = Color(0xFF0B0B0D)
 private val Panel = Color(0xFF17171B)
@@ -103,6 +107,7 @@ private fun VelnixApp() {
     var selectedTab by remember { mutableStateOf("الكل") }
     var query by remember { mutableStateOf("") }
     var selectedChannel by remember { mutableStateOf<Channel?>(null) }
+    var showEpgGuide by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf<String?>(null) }
     var isImporting by remember { mutableStateOf(false) }
     var epgPrograms by remember { mutableStateOf(emptyList<com.velnix.tv.domain.model.EpgProgram>()) }
@@ -257,11 +262,19 @@ private fun VelnixApp() {
                     Spacer(Modifier.width(8.dp))
                     Text(if (isImporting) "جارٍ استيراد القائمة..." else "استيراد قائمة M3U", fontWeight = FontWeight.Bold)
                 }
-                OutlinedButton(
-                    onClick = { epgPicker.launch(arrayOf("application/xml", "text/xml", "text/plain", "*/*")) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Acid)
-                ) { Text("استيراد دليل البرامج XMLTV", fontSize = 12.sp) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = { epgPicker.launch(arrayOf("application/xml", "text/xml", "text/plain", "*/*")) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Acid)
+                    ) { Text("استيراد XMLTV", fontSize = 11.sp) }
+                    OutlinedButton(
+                        onClick = { showEpgGuide = true },
+                        enabled = epgPrograms.isNotEmpty(),
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Acid)
+                    ) { Text("دليل البرامج", fontSize = 11.sp) }
+                }
                 importMessage?.let { Text(it, color = if (it.startsWith("فشل") || it.startsWith("الملف")) Color(0xFFFF7777) else Acid, fontSize = 11.sp) }
                 epgMessage?.let { Text(it, color = if (it.startsWith("تعذر") || it.startsWith("الملف")) Color(0xFFFF7777) else Acid, fontSize = 11.sp) }
                 Spacer(Modifier.height(12.dp))
@@ -321,6 +334,18 @@ private fun VelnixApp() {
 
         selectedChannel?.let { channel ->
             StreamPlayerDialog(channel = channel, onDismiss = { selectedChannel = null })
+        }
+        if (showEpgGuide) {
+            EpgGuideDialog(
+                channels = allChannels,
+                programs = epgPrograms,
+                nowUtcMillis = nowUtcMillis,
+                onPlay = { channel ->
+                    showEpgGuide = false
+                    selectedChannel = channel
+                },
+                onDismiss = { showEpgGuide = false }
+            )
         }
     }
 }
@@ -383,6 +408,141 @@ private fun ChannelCard(channel: Channel, epg: ChannelEpg, favorite: Boolean, on
         }
         IconButton(onClick = onFavorite) {
             Icon(Icons.Default.Favorite, contentDescription = "Favorite", tint = if (favorite) Acid else Muted)
+        }
+    }
+}
+
+
+@Composable
+private fun EpgGuideDialog(
+    channels: List<Channel>,
+    programs: List<com.velnix.tv.domain.model.EpgProgram>,
+    nowUtcMillis: Long,
+    onPlay: (Channel) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedDayOffset by remember { mutableIntStateOf(0) }
+    val dayStart = remember(selectedDayOffset, nowUtcMillis) {
+        Calendar.getInstance().apply {
+            timeInMillis = nowUtcMillis
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            add(Calendar.DAY_OF_YEAR, selectedDayOffset)
+        }.timeInMillis
+    }
+    val dayEnd = remember(dayStart) { dayStart + 24L * 60L * 60L * 1000L }
+    val dateLabel = remember(dayStart) {
+        SimpleDateFormat("EEEE, dd MMM", Locale.getDefault()).format(Date(dayStart))
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.92f).padding(10.dp),
+            color = Panel,
+            shape = RoundedCornerShape(22.dp)
+        ) {
+            Column(Modifier.fillMaxSize().padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("دليل البرامج", color = Acid, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                        Text("جدول القنوات والبرامج", color = Muted, fontSize = 11.sp)
+                    }
+                    TextButton(onClick = onDismiss) { Text("إغلاق", color = Muted) }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (0..6).forEach { offset ->
+                        FilterChip(
+                            selected = selectedDayOffset == offset,
+                            onClick = { selectedDayOffset = offset },
+                            label = {
+                                Text(
+                                    when (offset) {
+                                        0 -> "اليوم"
+                                        1 -> "غداً"
+                                        else -> "+$offset"
+                                    },
+                                    fontSize = 10.sp
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Acid,
+                                selectedLabelColor = Ink,
+                                labelColor = Color.White
+                            )
+                        )
+                    }
+                }
+                Text(dateLabel, color = Muted, fontSize = 11.sp)
+                Spacer(Modifier.height(8.dp))
+                if (programs.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("استورد ملف XMLTV حتى يظهر جدول البرامج.", color = Muted)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 20.dp)
+                    ) {
+                        items(channels.filter { !it.tvgId.isNullOrBlank() }, key = { it.number + it.name }) { channel ->
+                            val channelPrograms = programs
+                                .filter {
+                                    it.channelId.equals(channel.tvgId, ignoreCase = true) &&
+                                        it.startUtcMillis < dayEnd && it.endUtcMillis > dayStart
+                                }
+                                .sortedBy { it.startUtcMillis }
+                            if (channelPrograms.isNotEmpty()) {
+                                Column(
+                                    Modifier.fillMaxWidth()
+                                        .background(Color(0xFF222228), RoundedCornerShape(15.dp))
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(channel.name, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                        Text("${channelPrograms.size} برامج", color = Muted, fontSize = 10.sp)
+                                        TextButton(onClick = { onPlay(channel) }) {
+                                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Acid)
+                                            Text("مشاهدة", color = Acid, fontSize = 10.sp)
+                                        }
+                                    }
+                                    channelPrograms.forEach { program ->
+                                        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                                        val isCurrent = nowUtcMillis >= program.startUtcMillis && nowUtcMillis < program.endUtcMillis
+                                        Column(
+                                            Modifier.fillMaxWidth()
+                                                .background(Panel, RoundedCornerShape(10.dp))
+                                                .padding(10.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    "${timeFormat.format(Date(program.startUtcMillis))} – ${timeFormat.format(Date(program.endUtcMillis))}",
+                                                    color = if (isCurrent) Acid else Muted,
+                                                    fontSize = 10.sp
+                                                )
+                                                Spacer(Modifier.weight(1f))
+                                                if (isCurrent) {
+                                                    Text("الآن", color = Acid, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                            Text(program.title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                            program.description?.takeIf { it.isNotBlank() }?.let {
+                                                Text(it, color = Muted, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
