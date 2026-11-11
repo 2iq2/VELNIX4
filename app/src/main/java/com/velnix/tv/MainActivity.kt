@@ -62,6 +62,8 @@ private const val KEY_PLAYLIST = "playlist_m3u"
 private const val KEY_FAVORITES = "favorite_channels"
 private const val KEY_XMLTV = "epg_xmltv"
 private const val KEY_REMINDERS = "program_reminders"
+private const val KEY_PROFILE_NAME = "profile_name"
+private const val KEY_PROFILE_EMAIL = "profile_email"
 
 data class Channel(
     val name: String,
@@ -111,6 +113,9 @@ private fun VelnixApp() {
     var query by remember { mutableStateOf("") }
     var selectedChannel by remember { mutableStateOf<Channel?>(null) }
     var showEpgGuide by remember { mutableStateOf(false) }
+    var showAccount by remember { mutableStateOf(false) }
+    var profileName by remember { mutableStateOf(prefs.getString(KEY_PROFILE_NAME, "") ?: "") }
+    var profileEmail by remember { mutableStateOf(prefs.getString(KEY_PROFILE_EMAIL, "") ?: "") }
     var importMessage by remember { mutableStateOf<String?>(null) }
     var isImporting by remember { mutableStateOf(false) }
     var epgPrograms by remember { mutableStateOf(emptyList<com.velnix.tv.domain.model.EpgProgram>()) }
@@ -247,8 +252,18 @@ private fun VelnixApp() {
                         Text("VELNIX", color = Acid, fontSize = 27.sp, fontWeight = FontWeight.Black, letterSpacing = 3.sp)
                         Text("LIVE ENTERTAINMENT", color = Muted, fontSize = 9.sp, letterSpacing = 2.sp)
                     }
-                    Surface(color = Panel, shape = RoundedCornerShape(50)) {
-                        Text("● LIVE", color = Color(0xFFFF4545), modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Column(horizontalAlignment = Alignment.End) {
+                        Surface(color = Panel, shape = RoundedCornerShape(50)) {
+                            Text("● LIVE", color = Color(0xFFFF4545), modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedButton(
+                            onClick = { showAccount = true },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Acid)
+                        ) {
+                            Text(if (profileName.isBlank()) "حسابي" else profileName, maxLines = 1, fontSize = 10.sp)
+                        }
                     }
                 }
                 Spacer(Modifier.height(22.dp))
