@@ -42,7 +42,7 @@ object M3uParser {
     }
 
     private fun attribute(line: String, key: String): String? {
-        val regex = Regex("""(?:^|\\s)${Regex.escape(key)}="([^"]*)"""", RegexOption.IGNORE_CASE)
+        val regex = Regex("""(?:^|\s)${Regex.escape(key)}="([^"]*)"""", RegexOption.IGNORE_CASE)
         return regex.find(line)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }
     }
 }
