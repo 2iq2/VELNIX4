@@ -11,7 +11,7 @@ Standalone native Android IPTV application. This repository is independent from 
 - Local favorites persistence.
 - Media3 ExoPlayer integration for HTTP(S) HLS (.m3u8) and DASH (.mpd) streams.
 - Playback error reporting and lifecycle-aware pause/resume.
-- EPG programme data model with UTC timestamps and progress calculation.\n- XMLTV parser for programme channel IDs, titles, descriptions, and UTC-normalized start/end timestamps.
+- EPG programme data model with UTC timestamps and progress calculation.\n- XMLTV parser for programme channel IDs, titles, descriptions, and UTC-normalized start/end timestamps.\n- Local XMLTV file import and persistence, matching programme data to M3U channels by `tvg-id`, with current/next programme labels and a live progress indicator on channel cards.
 
 ## Build
 Open the repository in Android Studio with JDK 17 and Android SDK Platform 35. Sync Gradle and run the app configuration.
@@ -20,7 +20,7 @@ Open the repository in Android Studio with JDK 17 and Android SDK Platform 35. S
 - The repository does not yet include a verified Gradle wrapper or a successful CI build. No APK is being claimed as built or tested.
 - Demo channel names are placeholders; no TV streams or channel credentials are bundled.
 - M3U import currently reads a local playlist file. Remote playlist URL/Xtream login support is not implemented.
-- XMLTV parsing is implemented as a data layer, but no EPG feed picker/network ingestion or now/next guide UI is wired yet; reminders remain pending.
+- XMLTV import currently supports local XML files; remote EPG URL refresh, full multi-day programme grid, and reminders remain pending.
 - Account/subscription backend integration, Android TV / Google TV navigation, adaptive tablet layouts, and release QA remain pending.
 - The player supports common HTTP(S) HLS/DASH stream URLs; DRM, unusual codecs, RTSP, and provider-specific authentication need separate implementation and device testing.
 
