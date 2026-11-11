@@ -63,6 +63,20 @@ data class Channel(
     val logoUrl: String? = null
 )
 
+private fun favoriteKey(channel: Channel): String = channel.streamUrl ?: channel.name
+
+private fun displayCategory(group: String?): String {
+    val value = group?.trim().orEmpty()
+    val normalized = value.lowercase()
+    return when {
+        value.isBlank() -> "عام"
+        listOf("sport", "football", "soccer", "bein", "رياض").any { normalized.contains(it) } -> "رياضة"
+        listOf("news", "خبر", "أخبار").any { normalized.contains(it) } -> "أخبار"
+        listOf("general", "entertainment", "movie", "cinema", "عام").any { normalized.contains(it) } -> "عام"
+        else -> value
+    }
+}
+
 private val demoChannels = listOf(
     Channel("VELNIX SPORTS 1", "رياضة", "استورد قائمة M3U لربط البث", "01"),
     Channel("VELNIX SPORTS 2", "رياضة", "استورد قائمة M3U لربط البث", "02"),
@@ -94,7 +108,7 @@ private fun VelnixApp() {
                 com.velnix.tv.data.iptv.M3uParser.parse(raw).mapIndexed { index, item ->
                     Channel(
                         name = item.name,
-                        category = item.group?.takeIf { it.isNotBlank() } ?: "عام",
+                        category = displayCategory(item.group),
                         now = "قناة مستوردة",
                         number = (index + 1).toString().padStart(2, '0'),
                         streamUrl = item.streamUrl,
@@ -111,7 +125,7 @@ private fun VelnixApp() {
     val allChannels = if (importedChannels.isNotEmpty()) importedChannels else demoChannels
     val filtered = allChannels.filter { channel ->
         (selectedTab == "الكل" ||
-            (selectedTab == "المفضلة" && channel.name in favorites) ||
+            (selectedTab == "المفضلة" && favoriteKey(channel) in favorites) ||
             (selectedTab != "المفضلة" && channel.category.contains(selectedTab, ignoreCase = true))) &&
             (query.isBlank() || channel.name.contains(query, ignoreCase = true))
     }
@@ -230,9 +244,9 @@ private fun VelnixApp() {
                     items(filtered, key = { it.number + it.name }) { channel ->
                         ChannelCard(
                             channel = channel,
-                            favorite = channel.name in favorites,
+                            favorite = favoriteKey(channel) in favorites,
                             onFavorite = {
-                                favorites = if (channel.name in favorites) favorites - channel.name else favorites + channel.name
+                                favorites = if (favoriteKey(channel) in favorites) favorites - favoriteKey(channel) else favorites + favoriteKey(channel)
                                 prefs.edit().putStringSet(KEY_FAVORITES, favorites.toSet()).apply()
                             },
                             onClick = { selectedChannel = channel }
