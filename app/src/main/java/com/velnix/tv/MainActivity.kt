@@ -61,6 +61,7 @@ private const val PREFS_NAME = "velnix_preferences"
 private const val KEY_PLAYLIST = "playlist_m3u"
 private const val KEY_FAVORITES = "favorite_channels"
 private const val KEY_XMLTV = "epg_xmltv"
+private const val KEY_REMINDERS = "program_reminders"
 
 data class Channel(
     val name: String,
@@ -357,6 +358,13 @@ private data class ChannelEpg(
     val next: com.velnix.tv.domain.model.EpgProgram?
 )
 
+private data class PendingReminder(
+    val channelName: String,
+    val programTitle: String,
+    val startUtcMillis: Long,
+    val key: String
+)
+
 private fun findChannelEpg(
     channel: Channel,
     programs: List<com.velnix.tv.domain.model.EpgProgram>,
@@ -423,6 +431,30 @@ private fun EpgGuideDialog(
     onPlay: (Channel) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val reminderPrefs = remember { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
+    var reminderKeys by remember {
+        mutableStateOf(reminderPrefs.getStringSet(KEY_REMINDERS, emptySet())?.toSet() ?: emptySet())
+    }
+    var pendingReminder by remember { mutableStateOf<PendingReminder?>(null) }
+    var reminderMessage by remember { mutableStateOf<String?>(null) }
+
+    fun enableReminder(request: PendingReminder) {
+        ProgramReminderScheduler.schedule(context, request.channelName, request.programTitle, request.startUtcMillis, request.key)
+        reminderKeys = reminderKeys + request.key
+        reminderPrefs.edit().putStringSet(KEY_REMINDERS, reminderKeys).apply()
+        reminderMessage = "تم ضبط التذكير قبل موعد البرنامج بخمس دقائق."
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val request = pendingReminder
+        if (granted && request != null) enableReminder(request)
+        else reminderMessage = "لم يتم تفعيل الإشعارات. فعّل إذن الإشعارات من إعدادات الهاتف."
+        pendingReminder = null
+    }
+
     var selectedDayOffset by remember { mutableIntStateOf(0) }
     val dayStart = remember(selectedDayOffset, nowUtcMillis) {
         Calendar.getInstance().apply {
@@ -490,6 +522,7 @@ private fun EpgGuideDialog(
                     }
                 }
                 Text(dateLabel, color = Muted, fontSize = 11.sp)
+                reminderMessage?.let { Text(it, color = Acid, fontSize = 10.sp) }
                 Spacer(Modifier.height(8.dp))
                 if (programs.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -544,6 +577,34 @@ private fun EpgGuideDialog(
                                                 Spacer(Modifier.weight(1f))
                                                 if (isCurrent) {
                                                     Text("الآن", color = Acid, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                                val reminderKey = "${channel.tvgId}|${program.startUtcMillis}"
+                                                val hasReminder = reminderKey in reminderKeys
+                                                TextButton(
+                                                    enabled = hasReminder || program.startUtcMillis > nowUtcMillis,
+                                                    onClick = {
+                                                        if (hasReminder) {
+                                                            ProgramReminderScheduler.cancel(context, reminderKey)
+                                                            reminderKeys = reminderKeys - reminderKey
+                                                            reminderPrefs.edit().putStringSet(KEY_REMINDERS, reminderKeys).apply()
+                                                            reminderMessage = "تم إلغاء التذكير."
+                                                        } else {
+                                                            val request = PendingReminder(channel.name, program.title, program.startUtcMillis, reminderKey)
+                                                            if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                                                                androidx.core.content.ContextCompat.checkSelfPermission(
+                                                                    context, android.Manifest.permission.POST_NOTIFICATIONS
+                                                                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                                                            ) {
+                                                                pendingReminder = request
+                                                                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                                            } else {
+                                                                enableReminder(request)
+                                                            }
+                                                        }
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                                                ) {
+                                                    Text(if (hasReminder) "إلغاء التذكير" else "ذكّرني", color = if (hasReminder) Muted else Acid, fontSize = 9.sp)
                                                 }
                                             }
                                             Text(program.title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
