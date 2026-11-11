@@ -353,6 +353,25 @@ private fun VelnixApp() {
         selectedChannel?.let { channel ->
             StreamPlayerDialog(channel = channel, onDismiss = { selectedChannel = null })
         }
+        if (showAccount) {
+            AccountDialog(
+                initialName = profileName,
+                initialEmail = profileEmail,
+                onSave = { name, email ->
+                    profileName = name
+                    profileEmail = email
+                    prefs.edit().putString(KEY_PROFILE_NAME, name).putString(KEY_PROFILE_EMAIL, email).apply()
+                    showAccount = false
+                },
+                onClear = {
+                    profileName = ""
+                    profileEmail = ""
+                    prefs.edit().remove(KEY_PROFILE_NAME).remove(KEY_PROFILE_EMAIL).apply()
+                    showAccount = false
+                },
+                onDismiss = { showAccount = false }
+            )
+        }
         if (showEpgGuide) {
             EpgGuideDialog(
                 channels = allChannels,
@@ -391,6 +410,86 @@ private fun findChannelEpg(
         current = matching.firstOrNull { now >= it.startUtcMillis && now < it.endUtcMillis },
         next = matching.filter { it.startUtcMillis > now }.minByOrNull { it.startUtcMillis }
     )
+}
+
+
+@Composable
+private fun AccountDialog(
+    initialName: String,
+    initialEmail: String,
+    onSave: (String, String) -> Unit,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var email by remember { mutableStateOf(initialEmail) }
+    var validation by remember { mutableStateOf<String?>(null) }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            color = Panel,
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("ملفي الشخصي", color = Acid, fontSize = 21.sp, fontWeight = FontWeight.Black)
+                        Text("إعدادات الملف على هذا الجهاز", color = Muted, fontSize = 11.sp)
+                    }
+                    TextButton(onClick = onDismiss) { Text("إغلاق", color = Muted) }
+                }
+                OutlinedTextField(
+                    value = name, onValueChange = { name = it; validation = null },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("الاسم الظاهر") }, placeholder = { Text("اكتب اسمك") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+                OutlinedTextField(
+                    value = email, onValueChange = { email = it.trim(); validation = null },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("البريد الإلكتروني") }, placeholder = { Text("name@example.com") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                validation?.let { Text(it, color = Color(0xFFFF7777), fontSize = 11.sp) }
+                Button(
+                    onClick = {
+                        val cleanName = name.trim()
+                        val cleanEmail = email.trim()
+                        if (cleanName.isBlank()) validation = "اكتب الاسم الظاهر أولاً."
+                        else if (cleanEmail.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+                            validation = "صيغة البريد الإلكتروني غير صحيحة."
+                        } else onSave(cleanName, cleanEmail)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Acid, contentColor = Ink)
+                ) { Text("حفظ الملف الشخصي", fontWeight = FontWeight.Bold) }
+
+                Divider(color = Color(0xFF34343A))
+                Text("العضوية", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Row(
+                    Modifier.fillMaxWidth().background(Color(0xFF24242A), RoundedCornerShape(14.dp)).padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("الخطة المجانية", color = Acid, fontWeight = FontWeight.Bold)
+                        Text("الحالة الحالية على هذا الجهاز", color = Muted, fontSize = 10.sp)
+                    }
+                    Text("نشطة", color = Color(0xFF78D99A), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                Text(
+                    "تسجيل الدخول السحابي والاشتراكات المدفوعة والدفع الإلكتروني تحتاج ربط خادم الحسابات. هذه البيانات محلية ولا تنشئ حساباً على الإنترنت.",
+                    color = Muted, fontSize = 10.sp, lineHeight = 15.sp
+                )
+                if (initialName.isNotBlank() || initialEmail.isNotBlank()) {
+                    TextButton(onClick = onClear, modifier = Modifier.align(Alignment.End)) {
+                        Text("مسح الملف من هذا الجهاز", color = Color(0xFFFF7777), fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
