@@ -123,7 +123,7 @@ private fun VelnixApp() {
     var epgMessage by remember { mutableStateOf<String?>(null) }
     var nowUtcMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var importedChannels by remember {
-        mutableStateOf(
+        mutableStateOf<List<Channel>>(
             prefs.getString(KEY_PLAYLIST, null)?.let { raw ->
                 com.velnix.tv.data.iptv.M3uParser.parse(raw).mapIndexed { index, item ->
                     Channel(
@@ -136,15 +136,15 @@ private fun VelnixApp() {
                         tvgId = item.id
                     )
                 }
-            } ?: emptyList()
+            } ?: emptyList<Channel>()
         )
     }
     var favorites by remember {
-        mutableStateOf(prefs.getStringSet(KEY_FAVORITES, emptySet())?.toSet() ?: emptySet())
+        mutableStateOf<Set<String>>(prefs.getStringSet(KEY_FAVORITES, emptySet())?.toSet() ?: emptySet())
     }
     val tabs = listOf("الكل", "رياضة", "أخبار", "عام", "المفضلة")
-    val allChannels = if (importedChannels.isNotEmpty()) importedChannels else demoChannels
-    val filtered = allChannels.filter { channel ->
+    val allChannels: List<Channel> = if (importedChannels.isNotEmpty()) importedChannels else demoChannels
+    val filtered: List<Channel> = allChannels.filter { channel ->
         (selectedTab == "الكل" ||
             (selectedTab == "المفضلة" && favoriteKey(channel) in favorites) ||
             (selectedTab != "المفضلة" && channel.category.contains(selectedTab, ignoreCase = true))) &&
