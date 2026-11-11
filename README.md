@@ -11,9 +11,12 @@ Standalone native Android IPTV application. This repository is independent from 
 - Local favorites persistence.
 - Media3 ExoPlayer integration for HTTP(S) HLS (.m3u8) and DASH (.mpd) streams.
 - Playback error reporting and lifecycle-aware pause/resume.
-- EPG programme data model with UTC timestamps and progress calculation.\n- XMLTV parser for programme channel IDs, titles, descriptions, and UTC-normalized start/end timestamps.\n- Local XMLTV file import and persistence, matching programme data to M3U channels by `tvg-id`, with current/next programme labels and a live progress indicator on channel cards.
+- EPG programme data model with UTC timestamps and progress calculation.
+- XMLTV parser for programme channel IDs, titles, descriptions, and UTC-normalized start/end timestamps.
+- Local XMLTV file import and persistence, matching programme data to M3U channels by `tvg-id`, with current/next programme labels and a live progress indicator on channel cards.
 - Multi-day EPG guide screen with day navigation, channel programme schedules, local-time display, programme descriptions, and a one-tap action to open the channel player.
 - Local programme reminders with a five-minute advance notification, Android notification permission handling, and reminder cancellation.
+- Local profile screen with editable display name/email, on-device persistence, and a clearly labelled free local profile state.
 
 ## Build
 Open the repository in Android Studio with JDK 17 and Android SDK Platform 35. Sync Gradle and run the app configuration.
@@ -23,7 +26,7 @@ Open the repository in Android Studio with JDK 17 and Android SDK Platform 35. S
 - Demo channel names are placeholders; no TV streams or channel credentials are bundled.
 - M3U import currently reads a local playlist file. Remote playlist URL/Xtream login support is not implemented.
 - XMLTV import currently supports local XML files; remote EPG URL refresh remains pending. Android may delay inexact alarms due to battery optimization, and scheduled reminders are not yet restored after a device reboot.
-- Account/subscription backend integration, Android TV / Google TV navigation, adaptive tablet layouts, and release QA remain pending.
+- Real cloud authentication, account synchronization, paid subscription entitlements, payment processing, Android TV / Google TV navigation, adaptive tablet layouts, and release QA remain pending.
 - The player supports common HTTP(S) HLS/DASH stream URLs; DRM, unusual codecs, RTSP, and provider-specific authentication need separate implementation and device testing.
 
 ## Security and distribution
@@ -34,6 +37,6 @@ Open the repository in Android Studio with JDK 17 and Android SDK Platform 35. S
 ## Roadmap
 1. Complete playlist and channel management, including duplicate handling and robust import feedback.
 2. Remote EPG refresh and reliable reminder restoration.
-3. Account/subscription backend integration when configuration is supplied securely.
+3. Connect Supabase Auth and subscription backend after the project URL and public anon key are configured securely.
 4. Android TV / Google TV navigation and adaptive layouts.
 5. Automated build, device testing, and signed release packaging.
