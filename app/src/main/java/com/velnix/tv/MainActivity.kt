@@ -112,7 +112,8 @@ private fun VelnixApp() {
                         now = "قناة مستوردة",
                         number = (index + 1).toString().padStart(2, '0'),
                         streamUrl = item.streamUrl,
-                        logoUrl = item.logoUrl
+                        logoUrl = item.logoUrl,
+                        tvgId = item.id
                     )
                 }
             } ?: emptyList()
@@ -149,11 +150,12 @@ private fun VelnixApp() {
                         importedChannels = parsed.mapIndexed { index, item ->
                             Channel(
                                 name = item.name,
-                                category = item.group?.takeIf { it.isNotBlank() } ?: "عام",
+                                category = displayCategory(item.group),
                                 now = "قناة مستوردة",
                                 number = (index + 1).toString().padStart(2, '0'),
                                 streamUrl = item.streamUrl,
-                                logoUrl = item.logoUrl
+                                logoUrl = item.logoUrl,
+                                tvgId = item.id
                             )
                         }
                         withContext(Dispatchers.IO) {
@@ -317,8 +319,26 @@ private fun VelnixApp() {
     }
 }
 
+private data class ChannelEpg(
+    val current: com.velnix.tv.domain.model.EpgProgram?,
+    val next: com.velnix.tv.domain.model.EpgProgram?
+)
+
+private fun findChannelEpg(
+    channel: Channel,
+    programs: List<com.velnix.tv.domain.model.EpgProgram>,
+    now: Long
+): ChannelEpg {
+    val id = channel.tvgId?.takeIf { it.isNotBlank() } ?: return ChannelEpg(null, null)
+    val matching = programs.filter { it.channelId.equals(id, ignoreCase = true) }
+    return ChannelEpg(
+        current = matching.firstOrNull { now >= it.startUtcMillis && now < it.endUtcMillis },
+        next = matching.filter { it.startUtcMillis > now }.minByOrNull { it.startUtcMillis }
+    )
+}
+
 @Composable
-private fun ChannelCard(channel: Channel, favorite: Boolean, onFavorite: () -> Unit, onClick: () -> Unit) {
+private fun ChannelCard(channel: Channel, epg: ChannelEpg, favorite: Boolean, onFavorite: () -> Unit, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(18.dp))
             .clickable(onClick = onClick).padding(14.dp),
@@ -334,7 +354,23 @@ private fun ChannelCard(channel: Channel, favorite: Boolean, onFavorite: () -> U
         Column(Modifier.weight(1f)) {
             Text(channel.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(4.dp))
-            Text(channel.now, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                epg.current?.let { "الآن: ${it.title}" } ?: channel.now,
+                color = if (epg.current != null) Acid else Muted,
+                fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+            epg.next?.let { next ->
+                Text("التالي: ${next.title}", color = Muted, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            epg.current?.let { current ->
+                Spacer(Modifier.height(5.dp))
+                LinearProgressIndicator(
+                    progress = { current.progressAt(System.currentTimeMillis()) },
+                    modifier = Modifier.fillMaxWidth().height(3.dp),
+                    color = Acid,
+                    trackColor = Color(0xFF34343A)
+                )
+            }
         }
         IconButton(onClick = onClick) {
             Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Acid)
