@@ -53,6 +53,7 @@ private val Muted = Color(0xFF9A9AA3)
 private const val PREFS_NAME = "velnix_preferences"
 private const val KEY_PLAYLIST = "playlist_m3u"
 private const val KEY_FAVORITES = "favorite_channels"
+private const val KEY_XMLTV = "epg_xmltv"
 
 data class Channel(
     val name: String,
@@ -60,7 +61,8 @@ data class Channel(
     val now: String,
     val number: String,
     val streamUrl: String? = null,
-    val logoUrl: String? = null
+    val logoUrl: String? = null,
+    val tvgId: String? = null
 )
 
 private fun favoriteKey(channel: Channel): String = channel.streamUrl ?: channel.name
@@ -102,6 +104,9 @@ private fun VelnixApp() {
     var selectedChannel by remember { mutableStateOf<Channel?>(null) }
     var importMessage by remember { mutableStateOf<String?>(null) }
     var isImporting by remember { mutableStateOf(false) }
+    var epgPrograms by remember { mutableStateOf(emptyList<com.velnix.tv.domain.model.EpgProgram>()) }
+    var epgMessage by remember { mutableStateOf<String?>(null) }
+    var nowUtcMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var importedChannels by remember {
         mutableStateOf(
             prefs.getString(KEY_PLAYLIST, null)?.let { raw ->
