@@ -58,7 +58,19 @@ fun SupabaseAuthDialog(
                     Text("مسجّل الدخول", color = Color(0xFF78D99A), fontWeight = FontWeight.Bold)
                     Text(signedInEmail, color = Color.White)
                     OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("الاسم الظاهر") })
-                    Button(onClick = { onSave(name.trim(), signedInEmail); message = "تم حفظ الاسم على الجهاز." }, modifier = Modifier.fillMaxWidth()) { Text("حفظ الاسم") }
+                    Button(onClick = {
+                        val cleanName = name.trim()
+                        if (cleanName.isBlank()) {
+                            error = true
+                            message = "اكتب الاسم الظاهر أولاً."
+                        } else {
+                            perform {
+                                val result = com.velnix.tv.auth.VelnixAuth.updateDisplayName(context, cleanName)
+                                onSave(cleanName, signedInEmail)
+                                result
+                            }
+                        }
+                    }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "جارٍ الحفظ..." else "حفظ الاسم") }
                     OutlinedButton(onClick = {
                         perform {
                             com.velnix.tv.auth.VelnixAuth.signOut(context)
