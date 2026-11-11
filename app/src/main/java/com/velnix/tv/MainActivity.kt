@@ -31,7 +31,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.style.TextOverflow
@@ -198,7 +198,7 @@ private fun StreamPlayerDialog(channel: Channel, onDismiss: () -> Unit) {
                     TextButton(onClick = onDismiss) { Text("إغلاق", color = Muted) }
                 }
                 if (activeUrl != null) {
-                    Media3Player(url = activeUrl!!, onError = { error = it })
+                    Media3Player(url = activeUrl!!)
                 } else {
                     Box(
                         Modifier.fillMaxWidth().aspectRatio(16f / 9f)
@@ -245,7 +245,7 @@ private fun StreamPlayerDialog(channel: Channel, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun Media3Player(url: String, onError: (String) -> Unit) {
+private fun Media3Player(url: String) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val player = remember(url) {
