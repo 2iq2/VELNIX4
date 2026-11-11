@@ -12,6 +12,7 @@ Standalone native Android IPTV application. This repository is independent from 
 - Media3 ExoPlayer integration for HTTP(S) HLS (.m3u8) and DASH (.mpd) streams.
 - Playback error reporting and lifecycle-aware pause/resume.
 - EPG programme data model with UTC timestamps and progress calculation.\n- XMLTV parser for programme channel IDs, titles, descriptions, and UTC-normalized start/end timestamps.\n- Local XMLTV file import and persistence, matching programme data to M3U channels by `tvg-id`, with current/next programme labels and a live progress indicator on channel cards.
+- Multi-day EPG guide screen with day navigation, channel programme schedules, local-time display, programme descriptions, and a one-tap action to open the channel player.
 
 ## Build
 Open the repository in Android Studio with JDK 17 and Android SDK Platform 35. Sync Gradle and run the app configuration.
@@ -20,7 +21,7 @@ Open the repository in Android Studio with JDK 17 and Android SDK Platform 35. S
 - The repository does not yet include a verified Gradle wrapper or a successful CI build. No APK is being claimed as built or tested.
 - Demo channel names are placeholders; no TV streams or channel credentials are bundled.
 - M3U import currently reads a local playlist file. Remote playlist URL/Xtream login support is not implemented.
-- XMLTV import currently supports local XML files; remote EPG URL refresh, full multi-day programme grid, and reminders remain pending.
+- XMLTV import currently supports local XML files; remote EPG URL refresh and programme reminders remain pending.
 - Account/subscription backend integration, Android TV / Google TV navigation, adaptive tablet layouts, and release QA remain pending.
 - The player supports common HTTP(S) HLS/DASH stream URLs; DRM, unusual codecs, RTSP, and provider-specific authentication need separate implementation and device testing.
 
@@ -31,7 +32,7 @@ Open the repository in Android Studio with JDK 17 and Android SDK Platform 35. S
 
 ## Roadmap
 1. Complete playlist and channel management, including duplicate handling and robust import feedback.
-2. EPG XMLTV ingestion, now/next guide, and reminders.
+2. Remote EPG refresh and programme reminders.
 3. Account/subscription backend integration when configuration is supplied securely.
 4. Android TV / Google TV navigation and adaptive layouts.
 5. Automated build, device testing, and signed release packaging.
