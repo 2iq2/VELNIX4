@@ -26,6 +26,7 @@ fun SupabaseAuthDialog(
     signedInEmail: String?,
     onAuthChanged: (String?) -> Unit,
     onSave: (String, String) -> Unit,
+    onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -109,6 +110,9 @@ fun SupabaseAuthDialog(
                     Text("نشطة", color = Color(0xFF78D99A), fontSize = 11.sp)
                 }
                 Text("الحسابات متصلة بـ Supabase. الاشتراكات المدفوعة والدفع الإلكتروني لم تُفعّل بعد.", color = Color(0xFF9A9AA3), fontSize = 10.sp)
+                if (initialName.isNotBlank() || initialEmail.isNotBlank()) {
+                    TextButton(onClick = onClear) { Text("مسح الملف المحلي", color = Color(0xFFFF7777)) }
+                }
                 TextButton(onClick = onDismiss, modifier = Modifier.align(androidx.compose.ui.Alignment.End)) { Text("إغلاق") }
             }
         }
