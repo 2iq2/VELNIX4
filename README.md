@@ -10,7 +10,8 @@ Standalone native Android IPTV application. This repository is independent from 
 - Imported playlist persistence on the device.
 - Local favorites persistence.
 - Media3 ExoPlayer integration for HTTP(S) HLS (.m3u8) and DASH (.mpd) streams.
-- Playback error reporting and lifecycle-aware pause/resume.
+- Playback error reporting, lifecycle-aware pause/resume, an extended 30–120 second playback buffer, and a manual retry control after stream errors.
+- Persistent programme-reminder cleanup after a notification fires, so completed reminders no longer remain in the pending list.
 - EPG programme data model with UTC timestamps and progress calculation.
 - XMLTV parser for programme channel IDs, titles, descriptions, and UTC-normalized start/end timestamps.
 - Local XMLTV file import and persistence, matching programme data to M3U channels by `tvg-id`, with current/next programme labels and a live progress indicator on channel cards.
