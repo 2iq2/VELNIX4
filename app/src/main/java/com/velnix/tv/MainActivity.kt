@@ -10,6 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -432,7 +434,12 @@ private fun EpgGuideDialog(
             add(Calendar.DAY_OF_YEAR, selectedDayOffset)
         }.timeInMillis
     }
-    val dayEnd = remember(dayStart) { dayStart + 24L * 60L * 60L * 1000L }
+    val dayEnd = remember(dayStart) {
+        Calendar.getInstance().apply {
+            timeInMillis = dayStart
+            add(Calendar.DAY_OF_YEAR, 1)
+        }.timeInMillis
+    }
     val dateLabel = remember(dayStart) {
         SimpleDateFormat("EEEE, dd MMM", Locale.getDefault()).format(Date(dayStart))
     }
@@ -456,7 +463,10 @@ private fun EpgGuideDialog(
                     TextButton(onClick = onDismiss) { Text("إغلاق", color = Muted) }
                 }
                 Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     (0..6).forEach { offset ->
                         FilterChip(
                             selected = selectedDayOffset == offset,
