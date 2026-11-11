@@ -171,6 +171,54 @@ private fun VelnixApp() {
         }
     }
 
+
+    LaunchedEffect(Unit) {
+        val savedXmltv = withContext(Dispatchers.IO) { prefs.getString(KEY_XMLTV, null) }
+        if (!savedXmltv.isNullOrBlank()) {
+            epgPrograms = withContext(Dispatchers.Default) {
+                com.velnix.tv.data.epg.XmltvParser.parse(savedXmltv)
+            }
+            epgMessage = "دليل البرامج المحفوظ: ${epgPrograms.size} برنامج."
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowUtcMillis = System.currentTimeMillis()
+            delay(60_000)
+        }
+    }
+
+    val epgPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                epgMessage = "جارٍ تحميل دليل البرامج..."
+                try {
+                    val xml = withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                            ?: error("تعذرت قراءة ملف XMLTV")
+                    }
+                    val parsed = withContext(Dispatchers.Default) {
+                        com.velnix.tv.data.epg.XmltvParser.parse(xml)
+                    }
+                    if (parsed.isEmpty()) {
+                        epgMessage = "الملف لا يحتوي برامج صالحة."
+                    } else {
+                        withContext(Dispatchers.IO) {
+                            prefs.edit().putString(KEY_XMLTV, xml).apply()
+                        }
+                        epgPrograms = parsed
+                        epgMessage = "تم تحميل ${parsed.size} برنامج من دليل XMLTV."
+                    }
+                } catch (exception: Exception) {
+                    epgMessage = "تعذر تحميل الدليل: ${exception.localizedMessage ?: "خطأ غير معروف"}"
+                }
+            }
+        }
+    }
+
     MaterialTheme(colorScheme = darkColorScheme(
         background = Ink, surface = Panel, primary = Acid,
         onPrimary = Ink, onBackground = Color.White, onSurface = Color.White
@@ -201,7 +249,13 @@ private fun VelnixApp() {
                     Spacer(Modifier.width(8.dp))
                     Text(if (isImporting) "جارٍ استيراد القائمة..." else "استيراد قائمة M3U", fontWeight = FontWeight.Bold)
                 }
+                OutlinedButton(
+                    onClick = { epgPicker.launch(arrayOf("application/xml", "text/xml", "text/plain", "*/*")) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Acid)
+                ) { Text("استيراد دليل البرامج XMLTV", fontSize = 12.sp) }
                 importMessage?.let { Text(it, color = if (it.startsWith("فشل") || it.startsWith("الملف")) Color(0xFFFF7777) else Acid, fontSize = 11.sp) }
+                epgMessage?.let { Text(it, color = if (it.startsWith("تعذر") || it.startsWith("الملف")) Color(0xFFFF7777) else Acid, fontSize = 11.sp) }
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = query, onValueChange = { query = it },
@@ -244,6 +298,7 @@ private fun VelnixApp() {
                     items(filtered, key = { it.number + it.name }) { channel ->
                         ChannelCard(
                             channel = channel,
+                            epg = findChannelEpg(channel, epgPrograms, nowUtcMillis),
                             favorite = favoriteKey(channel) in favorites,
                             onFavorite = {
                                 favorites = if (favoriteKey(channel) in favorites) favorites - favoriteKey(channel) else favorites + favoriteKey(channel)
